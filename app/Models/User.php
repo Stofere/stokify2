@@ -49,7 +49,7 @@ class User extends Authenticatable
 
     public function transaksiPenjualan(): HasMany
     {
-        return $this->hasMany(TransaksiPenjualan:::class, 'user_id', 'id');
+        return $this->hasMany(TransaksiPenjualan::class, 'user_id', 'id');
     }
 
     public function transaksiRetur(): HasMany
