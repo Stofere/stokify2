@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -20,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'peran',
     ];
 
     /**
@@ -44,4 +46,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function transaksiPenjualan(): HasMany
+    {
+        return $this->hasMany(TransaksiPenjualan:::class, 'user_id', 'id');
+    }
+
+    public function transaksiRetur(): HasMany
+    {
+        return $this->hasMany(TransaksiRetur::class, 'user_id', 'id');
+    }
+
+    public function riwayatStok(): HasMany
+    {
+        return $this->hasMany(RiwayatStok::class, 'user_id', 'id');
+    }
+
 }
