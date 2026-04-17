@@ -26,8 +26,7 @@ Route::middleware(['auth'])->group(function () {
     // Transaksi
     Route::get('/pos', KasirPos::class)->name('pos');
     Route::get('/retur', ReturPenjualan::class)->name('retur');
-    Route::get('/stok/penyesuaian', PenyesuaianStok::class)->name('stok.penyesuaian');
-
+    
     // Master Data
     Route::get('/master/pelanggan', PelangganIndex::class)->name('master.pelanggan');
     Route::get('/master/produk', ProdukIndex::class)->name('master.produk');

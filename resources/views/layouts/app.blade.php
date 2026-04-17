@@ -27,9 +27,6 @@
             <a href="/retur" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
                 🔄 Retur Barang
             </a>
-            <a href="/stok/penyesuaian" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg text-red-300 font-semibold transition">
-                ⚠️ Adjust Stok
-            </a>
 
             <div class="pt-4 pb-1 text-xs text-gray-500 uppercase font-bold tracking-wider">Master Data</div>
             <a href="/master/produk" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
