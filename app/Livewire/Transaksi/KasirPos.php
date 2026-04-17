@@ -123,17 +123,17 @@ class KasirPos extends Component
 
     public function render()
     {
-        // Fitur NO-LAG FULLTEXT SEARCH (Mencari SKU, Nama, dan JSON Attribute sekaligus)
-        $hasilPencarian = collect();
-        
-        if (strlen($this->keyword) >= 2) {
-            $hasilPencarian = Produk::where('status_aktif', true)
-                ->whereRaw("MATCH(index_pencarian) AGAINST(? IN BOOLEAN MODE)", [$this->keyword . '*'])
-                ->limit(20)
-                ->get();
-        } elseif (empty($this->keyword)) {
-            // Default tampilkan 10 produk terbaru
-            $hasilPencarian = Produk::where('status_aktif', true)->latest()->limit(10)->get();
+        // FIX: Menggunakan algoritma Split LIKE agar kata pendek seperti 'FR' bisa dicari
+        $query = Produk::where('status_aktif', true);
+
+        if (!empty(trim($this->keyword))) {
+            $terms = explode(' ', trim(strtolower($this->keyword)));
+            foreach ($terms as $term) {
+                $query->where('index_pencarian', 'LIKE', '%' . $term . '%');
+            }
+            $hasilPencarian = $query->limit(20)->get();
+        } else {
+            $hasilPencarian = $query->latest()->limit(10)->get();
         }
 
         return view('livewire.transaksi.kasir-pos', [

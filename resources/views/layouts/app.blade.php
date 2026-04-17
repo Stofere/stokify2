@@ -35,6 +35,12 @@
             <a href="/master/produk" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
                 📦 Katalog Produk
             </a>
+            <a href="/master/kategori" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
+                🗂️ Kategori & Pivot
+            </a>
+            <a href="/master/atribut" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
+                🏷️ Master Atribut (JSON)
+            </a>
             <a href="/master/pelanggan" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
                 👥 Data Pelanggan
             </a>

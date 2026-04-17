@@ -10,6 +10,8 @@ use App\Livewire\Transaksi\ReturPenjualan;
 use App\Livewire\Master\PenyesuaianStok;
 use App\Livewire\Master\PelangganIndex;
 use App\Livewire\Master\ProdukIndex;
+use App\Livewire\Master\KategoriIndex;
+use App\Livewire\Master\AtributIndex;  
 
 // Route Authentication (Guest)
 Route::middleware(['guest'])->group(function () {
@@ -29,6 +31,9 @@ Route::middleware(['auth'])->group(function () {
     // Master Data
     Route::get('/master/pelanggan', PelangganIndex::class)->name('master.pelanggan');
     Route::get('/master/produk', ProdukIndex::class)->name('master.produk');
+
+    Route::get('/master/kategori', KategoriIndex::class)->name('master.kategori');
+        Route::get('/master/atribut', AtributIndex::class)->name('master.atribut');
     
     // Proses Logout (Non-Livewire Standard Route)
     Route::post('/logout', function() {

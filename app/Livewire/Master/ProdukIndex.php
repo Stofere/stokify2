@@ -3,11 +3,15 @@
 namespace App\Livewire\Master;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\Produk;
 use App\Models\Kategori;
 
 class ProdukIndex extends Component
 {
+
+    use WithPagination;
+    
     public $keyword = '';
     public $form_open = false;
     public $edit_id = null;
@@ -65,7 +69,7 @@ class ProdukIndex extends Component
         // 2. Validasi Atribut Dinamis (Pastikan semua spesifikasi terpilih)
         foreach ($this->atributDinamis as $attr) {
             if (empty($this->metadata_input[$attr->nama_atribut])) {
-                $this->addError('metadata_input.' . $attr->nama_atribut, "Atribut {$attr->nama_atribut} wajib dipilih!");
+                $this->addError('metadata_input.' . $attr->nama_atribut, "Atribut {$attr->nama_atribut} belum dipilih!");
                 return;
             }
         }
@@ -100,7 +104,7 @@ class ProdukIndex extends Component
                 'metadata' => empty($this->metadata_input) ? null : $this->metadata_input,
                 'index_pencarian' => $indexPencarian,
             ]);
-            session()->flash('sukses', 'Produk baru berhasil ditambahkan! Silakan lakukan penyesuaian stok awal di menu Adjust Stok.');
+            session()->flash('sukses', 'Barang baru berhasil ditambahkan! Stok awal adalah 0. Masuk ke menu Adjust Stok untuk mengisi jumlah fisiknya.');
         }
 
         $this->resetForm();
@@ -138,21 +142,30 @@ class ProdukIndex extends Component
         $this->reset(['edit_id', 'id_kategori', 'kode_barang', 'nama_produk', 'satuan', 'harga_jual_satuan', 'metadata_input', 'atributDinamis']);
         $this->lacak_stok = true;
         $this->form_open = false;
+        $this->resetValidation();
     }
+
+    // Reset halaman jika user mengetik pencarian baru
+    public function updatingKeyword()
+    {
+        $this->resetPage();
+    }
+
 
     public function render()
     {
-        // Fitur Pencarian Cepat
         $query = Produk::with('kategori')->orderBy('status_aktif', 'desc')->latest();
         
-        if (strlen($this->keyword) >= 2) {
-            $query->whereRaw("MATCH(index_pencarian) AGAINST(? IN BOOLEAN MODE)", [$this->keyword . '*']);
+        // FIX: Algoritma Pencarian Split-LIKE agar FR, CN, (2) bisa terdeteksi
+        if (!empty(trim($this->keyword))) {
+            $terms = explode(' ', trim(strtolower($this->keyword)));
+            foreach ($terms as $term) {
+                $query->where('index_pencarian', 'LIKE', '%' . $term . '%');
+            }
         }
 
-        $daftarProduk = $query->paginate(20);
-
         return view('livewire.master.produk-index', [
-            'daftarProduk' => $daftarProduk
+            'daftarProduk' => $query->paginate(15)
         ]);
     }
 }
