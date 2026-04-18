@@ -82,6 +82,12 @@
                                     <input type="number" wire:model="harga_jual_satuan" placeholder="Contoh: 150000" class="w-full border-gray-300 rounded-lg p-3 border">
                                     @error('harga_jual_satuan') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                                 </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-600 mb-1">Lokasi Rak / Gudang</label>
+                                    <input type="text" wire:model="lokasi" placeholder="Contoh: Rak A1, Gudang Belakang" class="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 bg-white">
+                                </div>
+                                
                             </div>
                         </div>
 
@@ -131,13 +137,22 @@
     @endif
 
     <!-- TABEL DATA BARANG UTAMA -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden {{ ($stok_modal_open || $modal_detail_nota_open) ? 'hidden' : '' }}">
-        <div class="bg-gray-50 p-4 border-b border-gray-200">
+    <!-- ALPINE JS GLOBAL: showHargaGlobal di-inject di sini -->
+    <div x-data="{ showHargaGlobal: false }" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden {{ ($stok_modal_open || $modal_detail_nota_open) ? 'hidden' : '' }}">
+        <div class="bg-gray-50 p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
             <input type="text" wire:model.live.debounce.500ms="keyword" placeholder="🔍 Cari Kode, Nama, Merk..." class="block w-full md:w-1/2 p-3 border border-gray-300 rounded-xl bg-white focus:ring-blue-500 shadow-inner">
+            
+            <!-- TOMBOL MATA GLOBAL UNTUK SEMUA HARGA -->
+            <button @click="showHargaGlobal = !showHargaGlobal" class="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 font-bold px-4 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 transition-colors shrink-0">
+                <svg x-show="!showHargaGlobal" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                <svg x-show="showHargaGlobal" style="display: none;" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                <span x-text="showHargaGlobal ? 'Sembunyikan Harga' : 'Tampilkan Harga'"></span>
+            </button>
         </div>
         
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
+                <!-- Header ... (Tetap sama) ... -->
                 <thead>
                     <tr class="bg-white border-b-2 border-gray-100 text-gray-500 text-sm tracking-wider">
                         <th class="p-4 font-bold">Detail Barang</th>
@@ -151,18 +166,30 @@
                     @forelse($daftarProduk as $prod)
                     <tr class="hover:bg-blue-50 {{ !$prod->status_aktif ? 'bg-red-50/50' : '' }}">
                         <td class="p-4">
-                            <span class="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded border">{{ $prod->kode_barang }}</span>
-                            <span class="text-xs text-gray-500 ml-2 font-bold">{{ $prod->kategori->nama_kategori }}</span>
-                            <p class="font-bold text-gray-800 text-base mt-2">{{ $prod->nama_produk }}</p>
+                            <p class="font-bold text-gray-800 text-lg leading-tight mb-1">{{ $prod->nama_produk }}</p>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded border">{{ $prod->kode_barang }}</span>
+                                <span class="text-[10px] bg-gray-800 text-white px-2 py-0.5 rounded uppercase font-bold">{{ $prod->kategori->nama_kategori }}</span>
+                                @if($prod->lokasi)
+                                    <span class="text-[10px] bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded font-bold">📍 {{ $prod->lokasi }}</span>
+                                @endif
+                            </div>
                             @if($prod->metadata)
-                                <div class="mt-2 flex flex-wrap gap-1.5">
+                                <div class="flex flex-wrap gap-1.5">
                                     @foreach($prod->metadata as $key => $val)
                                         <span class="bg-blue-100 text-blue-700 text-[11px] px-2 py-0.5 rounded-full font-semibold">{{ $val }}</span>
                                     @endforeach
                                 </div>
                             @endif
                         </td>
-                        <td class="p-4 text-right font-black text-green-700 text-lg">Rp {{ number_format($prod->harga_jual_satuan, 0, ',', '.') }}</td>
+                        <td class="p-4 text-right">
+                            <!-- HARGA DIKONTROL OLEH showHargaGlobal -->
+                            <div class="flex flex-col items-end justify-center h-full">
+                                <span x-show="!showHargaGlobal" class="font-black text-gray-400 text-lg select-none">Rp ***.***</span>
+                                <span x-show="showHargaGlobal" style="display: none;" class="font-black text-green-700 text-lg">Rp {{ number_format($prod->harga_jual_satuan, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        <!-- ... (td stok, status, aksi sama seperti sebelumnya) ... -->
                         <td class="p-4 text-center">
                             @if($prod->lacak_stok)
                                 <div class="bg-gray-100 inline-block px-3 py-1.5 rounded-lg border {{ $prod->stok_saat_ini <= 0 ? 'border-red-300 bg-red-50 text-red-600' : 'border-gray-200 text-gray-800' }}">

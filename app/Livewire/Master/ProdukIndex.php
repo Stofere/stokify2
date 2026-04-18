@@ -31,6 +31,7 @@ class ProdukIndex extends Component
     public $id_kategori = '';
     public $kode_barang = '';
     public $nama_produk = '';
+    public $lokasi = '';
     public $satuan = 'pcs';
     public $harga_jual_satuan = 0;
     public $lacak_stok = true;
@@ -82,6 +83,7 @@ class ProdukIndex extends Component
             'id_kategori' => 'required',
             'kode_barang' => 'required|unique:produk,kode_barang,' . $this->edit_id . ',id_produk',
             'nama_produk' => 'required|string|max:255',
+            'lokasi' => 'nullable|string|max:255',
             'satuan' => 'required|string',
             'harga_jual_satuan' => 'required|numeric|min:0',
             'lacak_stok' => 'boolean',
@@ -102,6 +104,7 @@ class ProdukIndex extends Component
                 'id_kategori' => $this->id_kategori,
                 'kode_barang' => $this->kode_barang,
                 'nama_produk' => $this->nama_produk,
+                'lokasi' => $this->lokasi,
                 'satuan' => $this->satuan,
                 'harga_jual_satuan' => $this->harga_jual_satuan,
                 'lacak_stok' => $this->lacak_stok,
@@ -134,6 +137,7 @@ class ProdukIndex extends Component
         $this->id_kategori = $produk->id_kategori;
         $this->kode_barang = $produk->kode_barang;
         $this->nama_produk = $produk->nama_produk;
+        $this->lokasi = $produk->lokasi;
         $this->satuan = $produk->satuan;
         $this->harga_jual_satuan = $produk->harga_jual_satuan;
         $this->lacak_stok = $produk->lacak_stok;
@@ -151,7 +155,7 @@ class ProdukIndex extends Component
 
     public function resetForm()
     {
-        $this->reset(['edit_id', 'id_kategori', 'kode_barang', 'nama_produk', 'satuan', 'harga_jual_satuan', 'metadata_input', 'atributDinamis']);
+        $this->reset(['edit_id', 'id_kategori', 'kode_barang', 'nama_produk', 'lokasi', 'satuan', 'harga_jual_satuan', 'metadata_input', 'atributDinamis']);
         $this->lacak_stok = true;
         $this->form_open = false;
         $this->resetValidation();

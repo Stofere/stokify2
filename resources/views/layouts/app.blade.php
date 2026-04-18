@@ -41,6 +41,9 @@
             <a href="/master/pelanggan" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
                 👥 Data Pelanggan
             </a>
+            <a href="/master/marketing" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 rounded-lg font-semibold transition">
+                👔 Data Marketing
+            </a>
             
             <form action="/logout" method="POST" class="mt-8 border-t border-gray-800 pt-4">
                 @csrf
