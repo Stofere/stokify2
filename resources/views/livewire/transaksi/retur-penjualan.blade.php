@@ -20,8 +20,26 @@
                     <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sampai Tgl</label>
                     <input wire:model.live="filter_tanggal_akhir" type="date" class="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-indigo-500">
                 </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pilih Pelanggan</label>
+                    <select wire:model.live="filter_pelanggan_id" class="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-indigo-500 bg-white min-w-[150px]">
+                        <option value="">Semua Pelanggan</option>
+                        @foreach($daftarPelanggan as $plg)
+                            <option value="{{ $plg->id_pelanggan }}">{{ $plg->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pilih Marketing</label>
+                    <select wire:model.live="filter_marketing_id" class="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-indigo-500 bg-white min-w-[150px]">
+                        <option value="">Semua Marketing</option>
+                        @foreach($daftarMarketing as $mkt)
+                            <option value="{{ $mkt->id_marketing }}">{{ $mkt->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="flex-1">
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari Nota / Nama Pelanggan</label>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari Nota / Keyword Bebas</label>
                     <input wire:model.live.debounce.300ms="filter_keyword" type="text" placeholder="Ketik kata kunci..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-indigo-500">
                 </div>
             </div>
@@ -32,7 +50,7 @@
                         <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider border-b">
                             <th class="px-5 py-3 font-bold">Tgl Transaksi</th>
                             <th class="px-5 py-3 font-bold">Kode Nota</th>
-                            <th class="px-5 py-3 font-bold">Pelanggan</th>
+                            <th class="px-5 py-3 font-bold">Plg & Mkt</th>
                             <th class="px-5 py-3 font-bold text-right">Total Transaksi</th>
                             <th class="px-5 py-3 font-bold text-center">Aksi</th>
                         </tr>
@@ -42,7 +60,10 @@
                             <tr class="border-b hover:bg-indigo-50">
                                 <td class="px-5 py-3 text-sm text-gray-700">{{ $nota->tanggal_transaksi->format('d M Y, H:i') }}</td>
                                 <td class="px-5 py-3 text-sm font-bold text-indigo-700">{{ $nota->kode_nota }}</td>
-                                <td class="px-5 py-3 text-sm text-gray-800">{{ $nota->pelanggan->nama ?? 'Umum' }}</td>
+                                <td class="px-5 py-3 text-sm text-gray-800">
+                                    <span class="block">👤 {{ $nota->pelanggan->nama ?? 'Umum' }}</span>
+                                    <span class="block text-xs text-gray-500 mt-1">👔 {{ $nota->marketing->nama ?? '-' }}</span>
+                                </td>
                                 <td class="px-5 py-3 text-sm text-right font-bold text-gray-600">Rp {{ number_format($nota->total_harga, 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 text-sm text-center">
                                     <button wire:click="pilihNota({{ $nota->id_transaksi_penjualan }})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-4 rounded shadow transition-colors">
@@ -52,7 +73,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-5 py-8 text-center text-gray-500 font-bold">Tidak ada nota ditemukan di tanggal tersebut.</td>
+                                <td colspan="5" class="px-5 py-8 text-center text-gray-500 font-bold">Tidak ada nota ditemukan di kriteria pencarian tersebut.</td>
                             </tr>
                         @endforelse
                     </tbody>

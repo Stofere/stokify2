@@ -6,6 +6,8 @@ use Livewire\Component;
 use App\Models\TransaksiPenjualan;
 use App\Models\DetailPenjualan;
 use App\Models\Produk;
+use App\Models\Pelanggan;
+use App\Models\Marketing;
 use App\Services\ReturnService;
 use Carbon\Carbon;
 use Exception;
@@ -18,7 +20,13 @@ class ReturPenjualan extends Component
     public $filter_tanggal_mulai;
     public $filter_tanggal_akhir;
     public $filter_keyword = '';
+    public $filter_pelanggan_id = '';
+    public $filter_marketing_id = '';
     
+    // Data Dropdown Filter
+    public $daftarPelanggan = [];
+    public $daftarMarketing = [];
+
     // State Tampilan Nota
     public $notaTerpilih = null;
 
@@ -38,15 +46,16 @@ class ReturPenjualan extends Component
 
     public function mount()
     {
-        // Default filter ke 7 hari terakhir
         $this->filter_tanggal_mulai = Carbon::now()->subDays(7)->format('Y-m-d');
         $this->filter_tanggal_akhir = Carbon::now()->format('Y-m-d');
+        
+        $this->daftarPelanggan = Pelanggan::where('aktif', true)->orderBy('nama')->get();
+        $this->daftarMarketing = Marketing::where('aktif', true)->orderBy('nama')->get();
     }
 
-    // --- FUNGSI PILIH & KEMBALI NOTA ---
     public function pilihNota($id_transaksi)
     {
-        $this->notaTerpilih = TransaksiPenjualan::with(['detailPenjualan.produk', 'user', 'pelanggan'])
+        $this->notaTerpilih = TransaksiPenjualan::with(['detailPenjualan.produk', 'pengguna', 'pelanggan'])
             ->find($id_transaksi);
     }
 
@@ -56,12 +65,9 @@ class ReturPenjualan extends Component
         $this->tutupModalRetur();
     }
 
-    // --- FUNGSI MODAL RETUR ---
     public function bukaModalRetur($id_detail)
     {
         $this->detailTerpilih = DetailPenjualan::with('produk')->find($id_detail);
-        
-        // Secara default, barang pengganti adalah barang itu sendiri (Jika pelanggan cuma mau tukar yang baru)
         $this->produk_pengganti = $this->detailTerpilih->produk; 
         
         $this->qty_retur = 1;
@@ -83,15 +89,13 @@ class ReturPenjualan extends Component
     public function pilihBarangPengganti($id_produk)
     {
         $this->produk_pengganti = Produk::find($id_produk);
-        $this->search_produk_pengganti = ''; // Tutup dropdown pencarian
+        $this->search_produk_pengganti = ''; 
     }
 
-    // --- EKSEKUSI RETUR KE SERVICE ---
     public function prosesRetur(ReturnService $returnService)
     {
         $sisaMaksimal = $this->detailTerpilih->jumlah - $this->detailTerpilih->jumlah_diretur;
 
-        // 1. Validasi Input
         $this->validate([
             'qty_retur' => "required|numeric|min:0.01|max:$sisaMaksimal",
             'kondisi_retur' => 'required|in:BAGUS,RUSAK',
@@ -104,13 +108,11 @@ class ReturPenjualan extends Component
             return;
         }
 
-        // 2. Keamanan Tingkat Tinggi (Otorisasi Password)
         if (!Hash::check($this->password_admin, Auth::user()->password)) {
             $this->addError('password_admin', 'Password otorisasi salah!');
             return;
         }
 
-        // 3. Format Data untuk ReturnService (Sesuai dengan struktur Fase 5)
         $itemsRetur = [
             [
                 'id_detail_penjualan' => $this->detailTerpilih->id_detail_penjualan,
@@ -121,7 +123,6 @@ class ReturPenjualan extends Component
         ];
 
         try {
-            // Lempar ke Otak Bisnis (Service Layer)
             $returnService->prosesRetur(
                 $this->notaTerpilih->id_transaksi_penjualan,
                 Auth::id(),
@@ -130,39 +131,46 @@ class ReturPenjualan extends Component
             );
 
             session()->flash('sukses', 'Proses Retur Berhasil! Mutasi stok & uang telah disesuaikan.');
-            
-            // Refresh data nota agar tabel langsung berubah (Sisa barang berkurang)
             $this->notaTerpilih->refresh(); 
             $this->tutupModalRetur();
 
         } catch (Exception $e) {
-            $this->addError('password_admin', $e->getMessage()); // Tampilkan error dari service
+            $this->addError('password_admin', $e->getMessage()); 
         }
     }
 
     public function render()
     {
-        // 1. QUERY DAFTAR NOTA (Jika belum pilih nota)
         $daftar_nota = collect();
         if (!$this->notaTerpilih) {
-            $queryNota = TransaksiPenjualan::with(['pelanggan'])
+            $queryNota = TransaksiPenjualan::with(['pelanggan', 'marketing'])
                 ->whereBetween('tanggal_transaksi', [
                     $this->filter_tanggal_mulai . ' 00:00:00',
                     $this->filter_tanggal_akhir . ' 23:59:59'
                 ]);
+
+            if ($this->filter_pelanggan_id) {
+                $queryNota->where('id_pelanggan', $this->filter_pelanggan_id);
+            }
+
+            if ($this->filter_marketing_id) {
+                $queryNota->where('id_marketing', $this->filter_marketing_id);
+            }
 
             if (!empty(trim($this->filter_keyword))) {
                 $queryNota->where(function($q) {
                     $q->where('kode_nota', 'LIKE', '%' . $this->filter_keyword . '%')
                       ->orWhereHas('pelanggan', function($q2) {
                           $q2->where('nama', 'LIKE', '%' . $this->filter_keyword . '%');
+                      })
+                      ->orWhereHas('marketing', function($q3) {
+                          $q3->where('nama', 'LIKE', '%' . $this->filter_keyword . '%');
                       });
                 });
             }
             $daftar_nota = $queryNota->orderBy('tanggal_transaksi', 'desc')->limit(50)->get();
         }
 
-        // 2. QUERY BARANG PENGGANTI (Pencarian Split-LIKE No Lag)
         $hasil_pencarian_produk = collect();
         if ($this->showReturModal && !empty(trim($this->search_produk_pengganti))) {
             $queryProduk = Produk::where('status_aktif', true);
