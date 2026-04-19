@@ -31,13 +31,13 @@ class ProdukIndex extends Component
     public $id_kategori = '';
     public $kode_barang = '';
     public $nama_produk = '';
-    public $lokasi = '';
     public $satuan = 'pcs';
     public $harga_jual_satuan = 0;
     public $lacak_stok = true;
+    public $lokasi = '';
     public $metadata_input = [];
 
-    // --- STATE UNTUK MODAL STOK (ADJUST & RIWAYAT) ---
+    // --- STATE UNTUK MODAL BUKU STOK UTAMA ---
     public $stok_modal_open = false;
     public $produk_stok_aktif = null;
     
@@ -45,16 +45,18 @@ class ProdukIndex extends Component
     public $riwayat_tgl_mulai;
     public $riwayat_tgl_akhir;
 
-    // Form Adjust Stok
+    // --- STATE UNTUK FORM ADJUST STOK & MODAL RECHECK ---
     public $tipe_penyesuaian = 'KOREKSI_MINUS';
     public $jumlah_adjust = 0;
     public $keterangan_adjust = '';
-    public $password_admin = '';
+    
+    public $showConfirmModal = false; // State Modal Recheck
+    public $password_admin = '';      // Password dipindah ke Modal Recheck
 
     // --- STATE UNTUK MODAL DETAIL NOTA (KLIK DARI RIWAYAT) ---
     public $modal_detail_nota_open = false;
     public $detail_nota_aktif = null;
-    public $tipe_nota_aktif = ''; // 'POS' atau 'RETUR'
+    public $tipe_nota_aktif = ''; 
 
     public function mount()
     {
@@ -71,7 +73,6 @@ class ProdukIndex extends Component
             if ($kategori) {
                 $this->atributDinamis = $kategori->atribut;
                 foreach ($this->atributDinamis as $attr) {
-                    // FIX BUG: Jika atribut adalah Tekstur, set default sebagai Array [] agar checkbox berfungsi
                     if ($attr->nama_atribut === 'Tekstur') {
                         $this->metadata_input[$attr->nama_atribut] = [];
                     } else {
@@ -91,14 +92,13 @@ class ProdukIndex extends Component
             'satuan' => 'required|string',
             'harga_jual_satuan' => 'required|numeric|min:0',
             'lacak_stok' => 'boolean',
-            'lokasi' => 'nullable|string|max:255', // (Jika Anda memakai fitur lokasi sebelumnya)
+            'lokasi' => 'nullable|string|max:255',
         ]);
 
         $metadataFinal = [];
         foreach ($this->atributDinamis as $attr) {
             $val = $this->metadata_input[$attr->nama_atribut] ?? null;
             if (!empty($val)) {
-                // FIX: Jika inputnya berupa Array (seperti Checkbox Tekstur), gabungkan jadi string koma
                 if(is_array($val)) {
                     $metadataFinal[$attr->nama_atribut] = implode(', ', $val);
                 } else {
@@ -138,6 +138,7 @@ class ProdukIndex extends Component
             ]);
             session()->flash('sukses', 'Barang baru berhasil ditambahkan! Stok awal adalah 0.');
         }
+
         $this->resetForm();
     }
 
@@ -155,8 +156,7 @@ class ProdukIndex extends Component
         
         $this->updatedIdKategori($this->id_kategori);
         $this->metadata_input = $produk->metadata ?? [];
-        
-        // FIX: Konversi kembali string berkomanya Tekstur menjadi Array agar Checkbox merespon saat Edit
+
         if(isset($this->metadata_input['Tekstur']) && is_string($this->metadata_input['Tekstur'])) {
             $this->metadata_input['Tekstur'] = array_map('trim', explode(',', $this->metadata_input['Tekstur']));
         }
@@ -172,7 +172,7 @@ class ProdukIndex extends Component
 
     public function resetForm()
     {
-        $this->reset(['edit_id', 'id_kategori', 'kode_barang', 'nama_produk', 'lokasi', 'satuan', 'harga_jual_satuan', 'metadata_input', 'atributDinamis']);
+        $this->reset(['edit_id', 'id_kategori', 'kode_barang', 'nama_produk', 'satuan', 'harga_jual_satuan', 'lokasi', 'metadata_input', 'atributDinamis']);
         $this->lacak_stok = true;
         $this->form_open = false;
         $this->resetValidation();
@@ -180,24 +180,22 @@ class ProdukIndex extends Component
 
     public function updatingKeyword()
     {
-        $this->resetPage(); // Reset pagination produk utama
+        $this->resetPage(); 
     }
 
     // =========================================================================
-    // FITUR MODAL STOK (ADJUST & RIWAYAT)
+    // FITUR BUKU STOK (ADJUST STOK)
     // =========================================================================
 
     public function bukaModalStok($id_produk)
     {
         $this->produk_stok_aktif = Produk::find($id_produk);
-        
-        // Set default filter tanggal ke 30 hari terakhir
         $this->riwayat_tgl_mulai = Carbon::now()->subDays(30)->format('Y-m-d');
         $this->riwayat_tgl_akhir = Carbon::now()->format('Y-m-d');
         
         $this->stok_modal_open = true;
         $this->resetFormAdjust();
-        $this->resetPage('riwayatPage'); // Reset pagination khusus riwayat
+        $this->resetPage('riwayatPage'); 
     }
 
     public function tutupModalStok()
@@ -207,22 +205,37 @@ class ProdukIndex extends Component
         $this->resetFormAdjust();
     }
 
-    // Reset pagination riwayat ketika tanggal diubah
     public function updatedRiwayatTglMulai() { $this->resetPage('riwayatPage'); }
     public function updatedRiwayatTglAkhir() { $this->resetPage('riwayatPage'); }
 
     private function resetFormAdjust()
     {
-        $this->reset(['tipe_penyesuaian', 'jumlah_adjust', 'keterangan_adjust', 'password_admin']);
+        $this->reset(['tipe_penyesuaian', 'jumlah_adjust', 'keterangan_adjust', 'password_admin', 'showConfirmModal']);
         $this->tipe_penyesuaian = 'KOREKSI_MINUS';
     }
 
-    public function prosesAdjustStok(StockService $stockService)
+    // TAHAP 1: VALIDASI DATA DAN MUNCULKAN MODAL RECHECK
+    public function reviewMutasiStok()
     {
         $this->validate([
             'tipe_penyesuaian' => 'required|in:KOREKSI_PLUS,KOREKSI_MINUS',
             'jumlah_adjust' => 'required|numeric|min:0.01',
             'keterangan_adjust' => 'required|string|min:5',
+        ]);
+
+        // Cek logis agar KOREKSI_MINUS tidak melebihi stok yang ada
+        if ($this->tipe_penyesuaian === 'KOREKSI_MINUS' && $this->jumlah_adjust > $this->produk_stok_aktif->stok_saat_ini) {
+            $this->addError('jumlah_adjust', "Jumlah keluar melebihi batas stok! Maksimal: " . $this->produk_stok_aktif->stok_saat_ini);
+            return;
+        }
+
+        $this->showConfirmModal = true;
+    }
+
+    // TAHAP 2: OTORISASI PASSWORD DAN SIMPAN KE DATABASE
+    public function prosesAdjustStok(StockService $stockService)
+    {
+        $this->validate([
             'password_admin' => 'required',
         ]);
 
@@ -241,30 +254,32 @@ class ProdukIndex extends Component
             );
 
             session()->flash('sukses_stok', "Stok fisik barang berhasil diperbarui.");
+            
+            // Refresh data setelah berhasil
             $this->produk_stok_aktif->refresh();
             $this->resetFormAdjust();
-            $this->resetPage('riwayatPage'); // Kembali ke halaman 1 riwayat setelah adjust
+            $this->resetPage('riwayatPage'); 
 
         } catch (Exception $e) {
+            $this->showConfirmModal = false;
             $this->addError('sistem_stok', $e->getMessage());
         }
     }
 
     // =========================================================================
-    // FITUR LIHAT DETAIL NOTA DARI RIWAYAT
+    // FITUR LIHAT DETAIL NOTA (DARI DALAM BUKU STOK)
     // =========================================================================
     public function lihatDetailNota($id_transaksi, $tipe)
     {
         $this->tipe_nota_aktif = $tipe;
         
         if ($tipe === 'POS') {
-            // FIX: Tambahkan relasi transaksiRetur
             $this->detail_nota_aktif = TransaksiPenjualan::with([
                 'detailPenjualan.produk', 
                 'user', 
                 'pelanggan', 
                 'marketing',
-                'transaksiRetur.detailRetur.produkPengganti' // <--- RELASI BARU
+                'transaksiRetur.detailRetur.produkPengganti' 
             ])->find($id_transaksi);
         } elseif ($tipe === 'RETUR') {
             $this->detail_nota_aktif = TransaksiRetur::with([
@@ -289,7 +304,6 @@ class ProdukIndex extends Component
     // =========================================================================
     public function render()
     {
-        // 1. Query Produk Utama
         $query = Produk::with('kategori')->orderBy('status_aktif', 'desc')->latest();
         if (!empty(trim($this->keyword))) {
             $terms = explode(' ', trim(strtolower($this->keyword)));
@@ -298,7 +312,6 @@ class ProdukIndex extends Component
             }
         }
 
-        // 2. Query Riwayat Stok (Hanya berjalan jika modal stok terbuka)
         $riwayat_stok_paginated = null;
         if ($this->stok_modal_open && $this->produk_stok_aktif) {
             $queryRiwayat = RiwayatStok::with(['user', 'transaksiPenjualan.pelanggan', 'transaksiPenjualan.marketing', 'transaksiRetur'])
@@ -310,7 +323,7 @@ class ProdukIndex extends Component
                     $this->riwayat_tgl_akhir . ' 23:59:59'
                 ]);
             }
-            // Batasi 15 per halaman & beri nama page khusus (riwayatPage) agar tidak bentrok dengan pagination produk
+            
             $riwayat_stok_paginated = $queryRiwayat->orderBy('id_riwayat', 'desc')->paginate(15, ['*'], 'riwayatPage');
         }
 

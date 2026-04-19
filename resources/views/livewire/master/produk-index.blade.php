@@ -248,7 +248,8 @@
     {{-- MODAL RIWAYAT & ADJUST STOK                                      --}}
     {{-- ================================================================ --}}
     @if($stok_modal_open && $produk_stok_aktif)
-        <div class="bg-white rounded-2xl overflow-hidden mb-6 {{ $modal_detail_nota_open ? 'hidden' : '' }} {{ $isOwnerRole ? 'border-2 border-blue-pro' : 'border-2 border-sage' }}">
+        <!-- PERUBAHAN: class z-40 agar berada di bawah modal recheck z-50 -->
+        <div class="bg-white rounded-2xl overflow-hidden mb-6 {{ $modal_detail_nota_open ? 'hidden' : '' }} {{ $isOwnerRole ? 'border-2 border-blue-pro' : 'border-2 border-sage' }} relative z-40">
             <div class="px-6 py-4 flex justify-between items-center {{ $isOwnerRole ? 'bg-charcoal text-white' : 'bg-sage-dark text-white' }}">
                 <div>
                     <h3 class="font-headline text-xl font-bold flex items-center gap-2">
@@ -277,7 +278,8 @@
                         <div class="bg-red-50 text-red-600 p-2.5 mb-3 rounded-lg text-xs font-semibold border border-red-100">{{ $message }}</div>
                     @enderror
 
-                    <form wire:submit="prosesAdjustStok" class="space-y-3">
+                    <!-- PERUBAHAN: Form ini hanya submit ke fungsi Review Mutasi -->
+                    <form wire:submit.prevent="reviewMutasiStok" class="space-y-3">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Tipe Mutasi</label>
                             <select wire:model="tipe_penyesuaian" class="w-full border-0 rounded-lg p-2.5 text-sm bg-white shadow-sm">
@@ -296,13 +298,8 @@
                             <textarea wire:model="keterangan_adjust" rows="2" class="w-full border-0 rounded-lg p-2.5 text-sm bg-white shadow-sm" placeholder="Alasan koreksi..."></textarea>
                             @error('keterangan_adjust') <span class="text-red-500 text-xs font-semibold">{{ $message }}</span> @enderror
                         </div>
-                        <div class="bg-red-50 p-3 rounded-lg border border-red-100">
-                            <label class="block text-[10px] font-bold text-red-600 mb-1.5 uppercase tracking-widest">Otorisasi Keamanan</label>
-                            <input type="password" wire:model="password_admin" placeholder="Password Akun Anda" class="w-full border border-red-200 rounded-lg p-2 text-sm focus:ring-red-300">
-                            @error('password_admin') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                        <button type="submit" class="w-full py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all active:scale-[0.98] {{ $isOwnerRole ? 'bg-blue-pro hover:bg-blue-800' : 'bg-sage-dark hover:bg-sage' }}">
-                            Eksekusi Mutasi Stok
+                        <button type="submit" class="w-full py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all active:scale-[0.98] bg-blue-600 hover:bg-blue-700">
+                            Review Perubahan Stok
                         </button>
                     </form>
                 </div>
@@ -390,6 +387,75 @@
                 </div>
             </div>
         </div>
+
+        {{-- ==================================================================== --}}
+        {{-- MODAL RECHECK KONFIRMASI MUTASI STOK FINAL                           --}}
+        {{-- ==================================================================== --}}
+        @if($showConfirmModal)
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 fade-in">
+                <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col border-t-4 {{ $tipe_penyesuaian === 'KOREKSI_PLUS' ? 'border-emerald-500' : 'border-red-500' }}">
+                    
+                    <div class="px-6 py-4 flex justify-between items-center shrink-0 {{ $isOwnerRole ? 'bg-charcoal text-white' : 'bg-sage-dark text-white' }}">
+                        <h3 class="text-lg font-headline font-bold flex items-center gap-2">⚠️ Konfirmasi Final Mutasi</h3>
+                        <button wire:click="$set('showConfirmModal', false)" class="text-white/70 hover:text-red-500 transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">close</span>
+                        </button>
+                    </div>
+
+                    <div class="p-6 bg-slate-50 flex-1">
+                        <p class="text-center text-slate-600 mb-6 text-sm">Anda akan mengubah fisik stok gudang sistem. Pastikan data di bawah ini sudah sesuai dengan kenyataan fisik.</p>
+
+                        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                            <div class="flex justify-between border-b border-slate-100 pb-3">
+                                <span class="text-slate-500 font-bold text-sm">Barang:</span>
+                                <span class="font-bold text-slate-800 text-right">{{ $produk_stok_aktif->nama_produk }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between border-b border-slate-100 pb-3">
+                                <span class="text-slate-500 font-bold text-sm">Perubahan:</span>
+                                @if($tipe_penyesuaian === 'KOREKSI_PLUS')
+                                    <span class="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded text-lg">+ {{ $jumlah_adjust }} {{ $produk_stok_aktif->satuan }} (MASUK)</span>
+                                @else
+                                    <span class="font-bold text-red-600 bg-red-50 px-3 py-1 rounded text-lg">- {{ $jumlah_adjust }} {{ $produk_stok_aktif->satuan }} (KELUAR)</span>
+                                @endif
+                            </div>
+
+                            <div class="flex justify-between border-b border-slate-100 pb-3">
+                                <span class="text-slate-500 font-bold text-sm">Sisa Stok Nanti:</span>
+                                <span class="font-bold {{ $isOwnerRole ? 'text-blue-pro' : 'text-sage-dark' }} text-xl">
+                                    {{ $tipe_penyesuaian === 'KOREKSI_PLUS' ? ($produk_stok_aktif->stok_saat_ini + $jumlah_adjust) : ($produk_stok_aktif->stok_saat_ini - $jumlah_adjust) }} 
+                                    <span class="text-sm font-semibold uppercase tracking-wider">{{ $produk_stok_aktif->satuan }}</span>
+                                </span>
+                            </div>
+
+                            <div>
+                                <span class="text-slate-500 font-bold text-sm block mb-1">Alasan Penyesuaian:</span>
+                                <p class="text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100 italic text-sm">"{{ $keterangan_adjust }}"</p>
+                            </div>
+                        </div>
+
+                        {{-- PASSWORD OTORISASI DIPINDAH KE SINI --}}
+                        <div class="mt-6 bg-red-50 border border-red-200 rounded-xl p-5 shadow-sm">
+                            <label class="block text-[10px] font-bold text-red-700 mb-1.5 uppercase tracking-widest">Otorisasi Keamanan (Wajib)</label>
+                            <p class="text-xs text-red-600 mb-3 font-medium">Tindakan ini akan tercatat permanen di CCTV sistem. Masukkan password.</p>
+                            <input type="password" wire:model="password_admin" placeholder="Masukkan Password Akun Anda..." class="w-full border border-red-200 rounded-lg p-3 focus:ring-2 focus:ring-red-200 text-sm font-semibold bg-white shadow-inner">
+                            @error('password_admin') <span class="text-red-500 text-xs font-semibold mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="bg-white px-6 py-4 border-t border-slate-200 flex flex-col-reverse sm:flex-row gap-3 justify-end items-center">
+                        <button wire:click="$set('showConfirmModal', false)" class="w-full sm:w-auto px-6 py-2.5 bg-white text-slate-600 border border-slate-200 rounded-xl font-semibold hover:bg-slate-50 transition-colors">Batal</button>
+                        
+                        <button wire:click="prosesAdjustStok" 
+                                wire:loading.attr="disabled"
+                                class="w-full sm:w-auto px-8 py-2.5 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 {{ $isOwnerRole ? 'bg-blue-pro hover:bg-blue-800' : 'bg-sage-dark hover:bg-sage' }}">
+                            <span wire:loading.remove>Eksekusi Stok</span>
+                            <span wire:loading>Memproses...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
     @endif
 
     {{-- ================================================================ --}}
