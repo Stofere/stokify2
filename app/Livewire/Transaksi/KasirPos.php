@@ -9,62 +9,102 @@ use App\Models\Marketing;
 use App\Services\TransactionService;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class KasirPos extends Component
 {
-    // Form & Filter
     public $keyword = '';
     
-    // Data Master
-    public $daftarPelanggan = [];
-    public $daftarMarketing = [];
-
-    // State Transaksi
+    // --- STATE PELANGGAN (WAJIB) ---
     public $id_pelanggan = null;
-    public $id_marketing = null;
-    public $catatan = '';
+    public $pelangganTerpilihNama = '';
+    public $searchPelanggan = '';
     
-    // State Keranjang
-    public $keranjang = []; // Format: [['id_produk', 'nama_produk', 'satuan', 'jumlah', 'harga_satuan', 'subtotal', 'max_stok', 'lacak_stok']]
-    public $total_belanja = 0;
+    // State Pelanggan Baru (Disimpan di Frontend dulu)
+    public $is_pelanggan_baru = false;
+    public $pelanggan_baru_nama = '';
+    public $pelanggan_baru_telepon = '';
+    public $pelanggan_baru_alamat = '';
 
-    public function mount()
+    // --- STATE MARKETING (WAJIB) ---
+    public $id_marketing = null;
+    public $marketingTerpilihNama = '';
+    public $searchMarketing = '';
+
+    public $catatan = '';
+    public $keranjang = []; 
+    public $total_belanja = 0;
+    
+    public $showConfirmModal = false;
+
+    // --- FUNGSI PELANGGAN ---
+    public function pilihPelanggan($id, $nama)
     {
-        $this->daftarPelanggan = Pelanggan::where('aktif', true)->get();
-        $this->daftarMarketing = Marketing::where('aktif', true)->get();
+        $this->is_pelanggan_baru = false;
+        $this->id_pelanggan = $id;
+        $this->pelangganTerpilihNama = $nama;
+        $this->searchPelanggan = '';
+        $this->resetErrorBag('pelanggan_wajib');
     }
 
+    public function hapusPelanggan()
+    {
+        $this->id_pelanggan = null;
+        $this->pelangganTerpilihNama = '';
+        $this->is_pelanggan_baru = false;
+        $this->pelanggan_baru_nama = '';
+        $this->pelanggan_baru_telepon = '';
+        $this->pelanggan_baru_alamat = '';
+    }
+
+    public function setPelangganBaru()
+    {
+        $this->validate(['searchPelanggan' => 'required|min:2|max:255']);
+        
+        $this->is_pelanggan_baru = true;
+        $this->pelanggan_baru_nama = $this->searchPelanggan;
+        $this->pelangganTerpilihNama = $this->searchPelanggan . ' (Pelanggan Baru)';
+        $this->id_pelanggan = null;
+        $this->searchPelanggan = '';
+        $this->resetErrorBag('pelanggan_wajib');
+    }
+
+    // --- FUNGSI MARKETING ---
+    public function pilihMarketing($id, $nama)
+    {
+        $this->id_marketing = $id;
+        $this->marketingTerpilihNama = $nama;
+        $this->searchMarketing = '';
+        $this->resetErrorBag('marketing_wajib');
+    }
+
+    public function hapusMarketing()
+    {
+        $this->id_marketing = null;
+        $this->marketingTerpilihNama = '';
+    }
+
+    // --- FUNGSI KERANJANG ---
     public function tambahKeKeranjang(int $idProduk)
     {
         $produk = Produk::find($idProduk);
+        if (!$produk || !$produk->status_aktif) return;
 
-        if (!$produk || !$produk->status_aktif) {
-            $this->addError('keranjang', 'Produk tidak valid.');
-            return;
-        }
-
-        // Cek apakah produk sudah ada di keranjang
         $index = collect($this->keranjang)->search(fn($item) => $item['id_produk'] === $idProduk);
 
         if ($index !== false) {
-            // Jika sudah ada, tambah jumlahnya
             $qtyBaru = $this->keranjang[$index]['jumlah'] + 1;
-            
-            // Validasi stok instan di layar
             if ($produk->lacak_stok && $qtyBaru > $produk->stok_saat_ini) {
                 session()->flash('error', "Stok {$produk->nama_produk} tidak mencukupi!");
                 return;
             }
-
             $this->keranjang[$index]['jumlah'] = $qtyBaru;
             $this->keranjang[$index]['subtotal'] = $qtyBaru * $this->keranjang[$index]['harga_satuan'];
         } else {
-            // Jika belum ada, masukkan ke keranjang
             if ($produk->lacak_stok && $produk->stok_saat_ini < 1) {
                 session()->flash('error', "Stok {$produk->nama_produk} habis!");
                 return;
             }
-
             $this->keranjang[] = [
                 'id_produk' => $produk->id_produk,
                 'nama_produk' => $produk->nama_produk,
@@ -76,14 +116,13 @@ class KasirPos extends Component
                 'lacak_stok' => $produk->lacak_stok,
             ];
         }
-
         $this->hitungTotal();
     }
 
     public function hapusItem(int $index)
     {
         unset($this->keranjang[$index]);
-        $this->keranjang = array_values($this->keranjang); // Re-index array
+        $this->keranjang = array_values($this->keranjang);
         $this->hitungTotal();
     }
 
@@ -92,40 +131,85 @@ class KasirPos extends Component
         $this->total_belanja = collect($this->keranjang)->sum('subtotal');
     }
 
-    public function prosesPembayaran(TransactionService $transactionService)
+    // --- FUNGSI PROSES CHECKOUT ---
+    public function konfirmasiPembayaran()
     {
-        // 1. Validasi Input (Thin Component Rule)
         if (empty($this->keranjang)) {
-            $this->addError('keranjang', 'Keranjang belanja masih kosong.');
+            $this->addError('keranjang', 'Keranjang belanja kosong.');
             return;
         }
 
-        // 2. Lempar ke Service Layer (Fat Service Rule)
+        // VALIDASI WAJIB: Pelanggan & Marketing Harus Ada
+        if (!$this->id_pelanggan && !$this->is_pelanggan_baru) {
+            $this->addError('pelanggan_wajib', 'Pilih atau tambahkan pelanggan terlebih dahulu!');
+            return;
+        }
+
+        if (!$this->id_marketing) {
+            $this->addError('marketing_wajib', 'Sales / Marketing wajib dipilih!');
+            return;
+        }
+
+        // Pastikan nama termuat untuk tampilan di Modal
+        if ($this->id_pelanggan && empty($this->pelangganTerpilihNama)) {
+            $this->pelangganTerpilihNama = Pelanggan::find($this->id_pelanggan)->nama;
+        }
+        if ($this->id_marketing && empty($this->marketingTerpilihNama)) {
+            $this->marketingTerpilihNama = Marketing::find($this->id_marketing)->nama;
+        }
+
+        $this->showConfirmModal = true;
+    }
+
+    public function prosesPembayaranFinal(TransactionService $transactionService)
+    {
+        // PENCEGAHAN SPAM: Gunakan DB Transaction agar pembuatan Pelanggan & Nota berjalan dalam 1 antrean aman
+        DB::beginTransaction();
         try {
+            $id_pelanggan_final = $this->id_pelanggan;
+
+            // Jika pelanggan baru, buat datanya di database SEKARANG
+            if ($this->is_pelanggan_baru) {
+                $newPlg = Pelanggan::create([
+                    'nama' => $this->pelanggan_baru_nama,
+                    'telepon' => $this->pelanggan_baru_telepon,
+                    'alamat' => $this->pelanggan_baru_alamat,
+                    'aktif' => true
+                ]);
+                $id_pelanggan_final = $newPlg->id_pelanggan;
+            }
+
             $dataNota = [
-                'id_pelanggan' => $this->id_pelanggan,
+                'id_pelanggan' => $id_pelanggan_final,
                 'id_marketing' => $this->id_marketing,
                 'catatan' => $this->catatan,
             ];
 
-            // Panggil service yang berisi DB Transaction dan Pessimistic Locking
+            // Lempar ke otak bisnis untuk diproses
             $nota = $transactionService->createPenjualan(Auth::id(), $dataNota, $this->keranjang);
-
-            // 3. Jika berhasil, reset form dan tampilkan pesan sukses
-            session()->flash('sukses', "Transaksi berhasil! Nomor Nota: " . $nota->kode_nota);
-            $this->reset(['keranjang', 'total_belanja', 'id_pelanggan', 'id_marketing', 'catatan', 'keyword']);
             
+            DB::commit(); // Konfirmasi semua perubahan database (Pelanggan + Transaksi)
+
+            session()->flash('sukses', "Transaksi berhasil! Nomor Nota: " . $nota->kode_nota);
+            
+            // Reset seluruh State
+            $this->reset([
+                'keranjang', 'total_belanja', 'catatan', 'keyword', 'showConfirmModal',
+                'id_pelanggan', 'pelangganTerpilihNama', 'searchPelanggan', 'is_pelanggan_baru', 'pelanggan_baru_nama', 'pelanggan_baru_telepon', 'pelanggan_baru_alamat',
+                'id_marketing', 'marketingTerpilihNama', 'searchMarketing'
+            ]);
+
         } catch (Exception $e) {
-            // Tangkap pesan error dari logic Service (Contoh: "Stok kurang")
+            DB::rollBack(); // Batalkan pembuatan pelanggan & nota jika ada yang error (misal stok tiba-tiba habis)
+            $this->showConfirmModal = false;
             $this->addError('checkout', $e->getMessage());
         }
     }
 
     public function render()
     {
-        // FIX: Menggunakan algoritma Split LIKE agar kata pendek seperti 'FR' bisa dicari
+        // 1. Pencarian Produk
         $query = Produk::where('status_aktif', true);
-
         if (!empty(trim($this->keyword))) {
             $terms = explode(' ', trim(strtolower($this->keyword)));
             foreach ($terms as $term) {
@@ -133,11 +217,25 @@ class KasirPos extends Component
             }
             $hasilPencarian = $query->limit(20)->get();
         } else {
-            $hasilPencarian = $query->latest()->limit(10)->get();
+            $hasilPencarian = $query->latest()->limit(12)->get();
+        }
+
+        // 2. Pencarian Cepat Pelanggan
+        $hasilPelanggan = collect();
+        if (strlen($this->searchPelanggan) > 0) {
+            $hasilPelanggan = Pelanggan::where('aktif', true)->where('nama', 'like', '%' . $this->searchPelanggan . '%')->limit(5)->get();
+        }
+
+        // 3. Pencarian Cepat Marketing (Hanya mencari yang sudah ada)
+        $hasilMarketing = collect();
+        if (strlen($this->searchMarketing) > 0) {
+            $hasilMarketing = Marketing::where('aktif', true)->where('nama', 'like', '%' . $this->searchMarketing . '%')->limit(5)->get();
         }
 
         return view('livewire.transaksi.kasir-pos', [
-            'daftarProduk' => $hasilPencarian
+            'daftarProduk' => $hasilPencarian,
+            'hasilPelanggan' => $hasilPelanggan,
+            'hasilMarketing' => $hasilMarketing,
         ]);
     }
 }

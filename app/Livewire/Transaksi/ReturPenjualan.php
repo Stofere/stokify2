@@ -55,7 +55,7 @@ class ReturPenjualan extends Component
 
     public function pilihNota($id_transaksi)
     {
-        $this->notaTerpilih = TransaksiPenjualan::with(['detailPenjualan.produk', 'pengguna', 'pelanggan'])
+        $this->notaTerpilih = TransaksiPenjualan::with(['detailPenjualan.produk', 'user', 'pelanggan'])
             ->find($id_transaksi);
     }
 

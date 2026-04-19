@@ -83,16 +83,22 @@ class ProdukIndex extends Component
             'id_kategori' => 'required',
             'kode_barang' => 'required|unique:produk,kode_barang,' . $this->edit_id . ',id_produk',
             'nama_produk' => 'required|string|max:255',
-            'lokasi' => 'nullable|string|max:255',
             'satuan' => 'required|string',
             'harga_jual_satuan' => 'required|numeric|min:0',
             'lacak_stok' => 'boolean',
+            'lokasi' => 'nullable|string|max:255', // (Jika Anda memakai fitur lokasi sebelumnya)
         ]);
 
         $metadataFinal = [];
         foreach ($this->atributDinamis as $attr) {
-            if (!empty($this->metadata_input[$attr->nama_atribut])) {
-                $metadataFinal[$attr->nama_atribut] = $this->metadata_input[$attr->nama_atribut];
+            $val = $this->metadata_input[$attr->nama_atribut] ?? null;
+            if (!empty($val)) {
+                // FIX: Jika inputnya berupa Array (seperti Checkbox Tekstur), gabungkan jadi string koma
+                if(is_array($val)) {
+                    $metadataFinal[$attr->nama_atribut] = implode(', ', $val);
+                } else {
+                    $metadataFinal[$attr->nama_atribut] = $val;
+                }
             }
         }
 
@@ -104,10 +110,10 @@ class ProdukIndex extends Component
                 'id_kategori' => $this->id_kategori,
                 'kode_barang' => $this->kode_barang,
                 'nama_produk' => $this->nama_produk,
-                'lokasi' => $this->lokasi,
                 'satuan' => $this->satuan,
                 'harga_jual_satuan' => $this->harga_jual_satuan,
                 'lacak_stok' => $this->lacak_stok,
+                'lokasi' => $this->lokasi ?? null,
                 'metadata' => empty($metadataFinal) ? null : $metadataFinal,
                 'index_pencarian' => $indexPencarian,
             ]);
@@ -121,12 +127,12 @@ class ProdukIndex extends Component
                 'harga_jual_satuan' => $this->harga_jual_satuan,
                 'lacak_stok' => $this->lacak_stok,
                 'stok_saat_ini' => 0,
+                'lokasi' => $this->lokasi ?? null,
                 'metadata' => empty($metadataFinal) ? null : $metadataFinal,
                 'index_pencarian' => $indexPencarian,
             ]);
             session()->flash('sukses', 'Barang baru berhasil ditambahkan! Stok awal adalah 0.');
         }
-
         $this->resetForm();
     }
 
@@ -137,13 +143,19 @@ class ProdukIndex extends Component
         $this->id_kategori = $produk->id_kategori;
         $this->kode_barang = $produk->kode_barang;
         $this->nama_produk = $produk->nama_produk;
-        $this->lokasi = $produk->lokasi;
         $this->satuan = $produk->satuan;
         $this->harga_jual_satuan = $produk->harga_jual_satuan;
         $this->lacak_stok = $produk->lacak_stok;
+        $this->lokasi = $produk->lokasi;
         
         $this->updatedIdKategori($this->id_kategori);
         $this->metadata_input = $produk->metadata ?? [];
+        
+        // FIX: Konversi kembali string berkomanya Tekstur menjadi Array agar Checkbox merespon saat Edit
+        if(isset($this->metadata_input['Tekstur']) && is_string($this->metadata_input['Tekstur'])) {
+            $this->metadata_input['Tekstur'] = array_map('trim', explode(',', $this->metadata_input['Tekstur']));
+        }
+        
         $this->form_open = true;
     }
 
@@ -241,11 +253,21 @@ class ProdukIndex extends Component
         $this->tipe_nota_aktif = $tipe;
         
         if ($tipe === 'POS') {
-            $this->detail_nota_aktif = TransaksiPenjualan::with(['detailPenjualan.produk', 'user', 'pelanggan', 'marketing'])
-                ->find($id_transaksi);
+            // FIX: Tambahkan relasi transaksiRetur
+            $this->detail_nota_aktif = TransaksiPenjualan::with([
+                'detailPenjualan.produk', 
+                'user', 
+                'pelanggan', 
+                'marketing',
+                'transaksiRetur.detailRetur.produkPengganti' // <--- RELASI BARU
+            ])->find($id_transaksi);
         } elseif ($tipe === 'RETUR') {
-            $this->detail_nota_aktif = TransaksiRetur::with(['detailRetur.produkDikembalikan', 'detailRetur.produkPengganti', 'user', 'transaksiPenjualan'])
-                ->find($id_transaksi);
+            $this->detail_nota_aktif = TransaksiRetur::with([
+                'detailRetur.produkDikembalikan', 
+                'detailRetur.produkPengganti', 
+                'user', 
+                'transaksiPenjualan'
+            ])->find($id_transaksi);
         }
 
         $this->modal_detail_nota_open = true;

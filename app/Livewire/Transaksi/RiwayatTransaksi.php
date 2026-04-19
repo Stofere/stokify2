@@ -39,13 +39,32 @@ class RiwayatTransaksi extends Component
     public function updatedTglMulai() { $this->resetPage(); }
     public function updatedTglAkhir() { $this->resetPage(); }
 
-    public function lihatDetail($id)
+    // GANTI FUNGSI lihatDetail() MENJADI SEPERTI INI:
+    public function lihatDetail($id, $tipe_paksa = null)
     {
-        if ($this->activeTab === 'POS') {
-            $this->detail_nota = TransaksiPenjualan::with(['detailPenjualan.produk', 'user', 'pelanggan', 'marketing'])->find($id);
-        } else {
-            $this->detail_nota = TransaksiRetur::with(['detailRetur.produkDikembalikan', 'detailRetur.produkPengganti', 'user', 'transaksiPenjualan.pelanggan'])->find($id);
+        // Jika dari klik tombol "Lihat Nota Retur" di dalam Nota POS, tipe_paksa akan terisi 'RETUR'
+        if ($tipe_paksa) {
+            $this->activeTab = $tipe_paksa; // Paksa pindah tab state sementara di memori
         }
+
+        if ($this->activeTab === 'POS') {
+            // FIX: Tambahkan relasi transaksiRetur.detailRetur.produkPengganti untuk melacak jejak retur di dalam Nota POS
+            $this->detail_nota = TransaksiPenjualan::with([
+                'detailPenjualan.produk', 
+                'user', 
+                'pelanggan', 
+                'marketing',
+                'transaksiRetur.detailRetur.produkPengganti' // <--- RELASI BARU
+            ])->find($id);
+        } else {
+            $this->detail_nota = TransaksiRetur::with([
+                'detailRetur.produkDikembalikan', 
+                'detailRetur.produkPengganti', 
+                'user', 
+                'transaksiPenjualan.pelanggan'
+            ])->find($id);
+        }
+        
         $this->modal_open = true;
     }
 

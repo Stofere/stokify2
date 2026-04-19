@@ -1,73 +1,84 @@
-<div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Master Kategori & Relasi Atribut</h2>
-        <button wire:click="$set('form_open', true)" class="bg-blue-600 text-white px-4 py-2 rounded shadow font-bold">
-            + Tambah Kategori
+@php $isOwnerRole = Auth::user()->peran === 'OWNER'; @endphp
+
+<div class="p-4 md:p-8 max-w-5xl mx-auto fade-in">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="font-headline text-2xl md:text-3xl font-bold {{ $isOwnerRole ? 'text-charcoal' : 'text-sage-dark' }}">Master Kategori & Relasi Atribut</h2>
+            <p class="text-slate-400 text-sm mt-1">Atur kategori produk dan atribut spesifikasi yang terikat.</p>
+        </div>
+        <button wire:click="$set('form_open', true)"
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-md hover:shadow-lg transition-all
+                       {{ $isOwnerRole ? 'bg-gradient-to-r from-blue-pro to-blue-600' : 'bg-gradient-to-r from-sage-dark to-sage' }}">
+            <span class="material-symbols-outlined text-[18px]">add</span> Tambah Kategori
         </button>
     </div>
 
     @if(session()->has('sukses'))
-        <div class="bg-green-100 text-green-700 p-3 rounded mb-4">{{ session('sukses') }}</div>
+        <div class="bg-emerald-50 text-emerald-700 p-3 mb-5 rounded-xl text-sm font-semibold flex items-center gap-2 border border-emerald-100">
+            <span class="material-symbols-outlined text-[18px]">check_circle</span> {{ session('sukses') }}
+        </div>
     @endif
 
     @if($form_open)
-        <div class="bg-white p-6 rounded shadow mb-6 border-t-4 border-blue-500">
-            <h3 class="font-bold text-lg mb-4 border-b pb-2">{{ $edit_id ? 'Edit Kategori' : 'Buat Kategori Baru' }}</h3>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-bold mb-1">Nama Kategori</label>
-                <input type="text" wire:model="nama_kategori" placeholder="Contoh: Woofer, Fullring, Kabel..." class="w-full md:w-1/2 border rounded p-2">
-                @error('nama_kategori') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        <div class="bg-white rounded-2xl overflow-hidden mb-6 {{ $isOwnerRole ? 'border border-slate-200' : '' }}">
+            <div class="px-6 py-4 border-b flex justify-between items-center {{ $isOwnerRole ? 'bg-slate-50 border-slate-200' : 'bg-sage-light/50 border-sage/10' }}">
+                <h3 class="font-headline text-lg font-bold {{ $isOwnerRole ? 'text-charcoal' : 'text-sage-dark' }}">{{ $edit_id ? 'Edit Kategori' : 'Buat Kategori Baru' }}</h3>
+                <button wire:click="resetForm" class="text-slate-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined">close</span></button>
             </div>
-
-            <div class="mb-6 p-4 bg-gray-50 border rounded">
-                <label class="block text-sm font-bold mb-3 text-blue-800">Atribut yang Aktif di Kategori Ini (Buku Aturan)</label>
-                <p class="text-xs text-gray-500 mb-3">Centang atribut di bawah ini. Atribut yang dicentang akan otomatis muncul sebagai form spesifikasi saat admin menambahkan produk di kategori ini.</p>
-                
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    @foreach($daftarAtribut as $attr)
-                        <label class="flex items-center gap-2 cursor-pointer bg-white p-2 border rounded shadow-sm hover:bg-blue-50">
-                            <!-- Array Binding Livewire ke selectedAtribut -->
-                            <input type="checkbox" wire:model="selectedAtribut" value="{{ $attr->id_atribut }}" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
-                            <span class="text-sm font-semibold text-gray-700">{{ $attr->nama_atribut }}</span>
-                        </label>
-                    @endforeach
+            <div class="p-6">
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Nama Kategori</label>
+                    <input type="text" wire:model="nama_kategori" placeholder="Contoh: Woofer, Fullring, Kabel..." class="w-full md:w-1/2 border-0 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 {{ $isOwnerRole ? 'focus:ring-blue-pro/20' : 'focus:ring-sage/20' }}">
+                    @error('nama_kategori') <span class="text-red-500 text-xs font-semibold">{{ $message }}</span> @enderror
                 </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button wire:click="simpan" class="bg-blue-600 text-white px-6 py-2 rounded font-bold">SIMPAN KATEGORI</button>
-                <button wire:click="resetForm" class="bg-gray-300 text-gray-800 px-6 py-2 rounded font-bold">BATAL</button>
+                <div class="mb-5 p-4 rounded-xl {{ $isOwnerRole ? 'bg-blue-50/50 border border-blue-100' : 'bg-sage-light/40 border border-sage/10' }}">
+                    <label class="block text-xs font-bold mb-2 {{ $isOwnerRole ? 'text-blue-pro' : 'text-sage-dark' }}">Atribut yang aktif di kategori ini</label>
+                    <p class="text-[10px] text-slate-400 mb-3">Centang atribut yang akan otomatis muncul saat admin menambah produk di kategori ini.</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        @foreach($daftarAtribut as $attr)
+                            <label class="flex items-center gap-2 cursor-pointer bg-white p-2.5 rounded-lg hover:bg-slate-50 transition-colors">
+                                <input type="checkbox" wire:model="selectedAtribut" value="{{ $attr->id_atribut }}" class="w-4 h-4 rounded {{ $isOwnerRole ? 'text-blue-pro' : 'text-sage' }}">
+                                <span class="text-sm font-semibold text-slate-700">{{ $attr->nama_atribut }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button wire:click="simpan" class="px-6 py-2.5 rounded-xl font-bold text-sm text-white shadow-md {{ $isOwnerRole ? 'bg-blue-pro hover:bg-blue-800' : 'bg-sage-dark hover:bg-sage' }} transition-colors">Simpan Kategori</button>
+                    <button wire:click="resetForm" class="px-5 py-2.5 rounded-xl font-semibold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Batal</button>
+                </div>
             </div>
         </div>
     @endif
 
-    <div class="bg-white rounded shadow p-4">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-gray-100 text-gray-600 text-sm border-b">
-                    <th class="p-3 w-1/4">Kategori</th>
-                    <th class="p-3">Atribut / Spesifikasi Wajib</th>
-                    <th class="p-3 w-24">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($daftarKategori as $kat)
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-bold text-gray-800">{{ $kat->nama_kategori }}</td>
-                    <td class="p-3 flex flex-wrap gap-2">
-                        @forelse($kat->atribut as $a)
-                            <span class="bg-blue-100 text-blue-800 border border-blue-200 text-xs px-2 py-1 rounded font-semibold">{{ $a->nama_atribut }}</span>
-                        @empty
-                            <span class="text-gray-400 text-xs italic">Tidak ada atribut khusus (Bebas)</span>
-                        @endforelse
-                    </td>
-                    <td class="p-3">
-                        <button wire:click="edit({{ $kat->id_kategori }})" class="text-blue-600 hover:underline font-bold text-sm">Edit / Atur Atribut</button>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <div class="bg-white rounded-2xl overflow-hidden {{ $isOwnerRole ? 'border border-slate-200' : '' }}">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 {{ $isOwnerRole ? 'border-b border-slate-100' : 'border-b border-sage/10' }}">
+                        <th class="p-4 w-1/4">Kategori</th><th class="p-4">Atribut Terikat</th><th class="p-4 w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    @foreach($daftarKategori as $kat)
+                    <tr class="{{ $isOwnerRole ? 'hover:bg-slate-50 border-b border-slate-50' : 'hover:bg-sage-light/20 border-b border-sage/5' }} transition-colors">
+                        <td class="p-4 font-semibold {{ $isOwnerRole ? 'text-charcoal' : 'text-sage-dark' }}">{{ $kat->nama_kategori }}</td>
+                        <td class="p-4">
+                            <div class="flex flex-wrap gap-1.5">
+                                @forelse($kat->atribut as $a)
+                                    <span class="bg-teal-50 text-teal-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">{{ $a->nama_atribut }}</span>
+                                @empty
+                                    <span class="text-slate-400 text-xs italic">Tidak ada atribut khusus</span>
+                                @endforelse
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <button wire:click="edit({{ $kat->id_kategori }})" class="text-xs font-bold {{ $isOwnerRole ? 'text-blue-pro' : 'text-sage' }} hover:underline">Edit</button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
