@@ -62,8 +62,8 @@
                         @forelse($daftarPos as $pos)
                             <tr class="transition-colors {{ $isOwnerRole ? 'hover:bg-slate-50 border-b border-slate-50' : 'hover:bg-sage-light/20 border-b border-sage/5' }}">
                                 <td class="p-4">
-                                    <p class="text-[10px] text-slate-400 font-semibold">{{ $pos->tanggal_transaksi->format('d/m/Y H:i') }}</p>
-                                    <p class="font-headline font-bold mt-0.5 {{ $isOwnerRole ? 'text-blue-pro' : 'text-sage-dark' }}">{{ $pos->kode_nota }}</p>
+                                    <p class="font-headline font-bold mt-0.5 {{ $isOwnerRole ? 'text-blue-pro' : 'text-sage-dark' }}">{{ $pos->tanggal_transaksi->format('d/m/Y H:i') }}</p>
+                                    <p class="text-[10px] text-slate-400 font-semibold">{{ $pos->kode_nota }}</p>
                                     {{-- FIX: Tampilkan penanda HANYA jika ada status DIRETUR --}}
                                     @if($pos->status_penjualan === 'DIRETUR')
                                         <span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded font-bold uppercase mt-1 inline-block border border-orange-200">⚠️ Ada Retur</span>
@@ -106,8 +106,8 @@
                         @forelse($daftarRetur as $retur)
                             <tr class="transition-colors {{ $isOwnerRole ? 'hover:bg-slate-50 border-b border-slate-50' : 'hover:bg-sage-light/20 border-b border-sage/5' }}">
                                 <td class="p-4">
-                                    <p class="text-[10px] text-slate-400 font-semibold">{{ $retur->tanggal_retur->format('d/m/Y H:i') }}</p>
-                                    <p class="font-headline font-bold mt-0.5 text-violet-600">{{ $retur->kode_retur }}</p>
+                                    <p class="font-headline font-bold mt-0.5 text-violet-600">{{ $retur->tanggal_retur->format('d/m/Y H:i') }}</p>
+                                    <p class="text-[10px] text-slate-400 font-semibold">{{ $retur->kode_retur }}</p>
                                 </td>
                                 <td class="p-4">
                                     <p class="text-xs text-slate-400 font-semibold mb-0.5">Nota: {{ $retur->transaksiPenjualan->kode_nota ?? '-' }}</p>

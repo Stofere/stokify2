@@ -82,14 +82,15 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
                 <div>
-                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Nota POS Hari Ini</p>
+                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Total Nota Bulan Ini</p>
                     <h3 class="font-headline text-3xl font-bold text-sage-dark mt-1">{{ $notaCount }}</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5 font-semibold">{{ $labelBulan }}</p>
                 </div>
             </a>
 
             {{-- Chart Preview Card --}}
-            <div class="md:col-span-2 bg-white rounded-2xl p-6">
-                <h4 class="font-label text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Grafik Transaksi (7 Hari Terakhir)</h4>
+            <div class="md:col-span-2 bg-white rounded-2xl p-6" wire:ignore>
+                <h4 class="font-label text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Grafik Transaksi — {{ $labelBulan }}</h4>
                 <div class="w-full h-48">
                     <canvas id="salesChart"></canvas>
                 </div>
@@ -280,8 +281,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
                 <div>
-                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Total Nota Hari Ini</p>
+                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Total Nota Bulan Ini</p>
                     <h3 class="font-headline text-3xl font-bold text-charcoal flex items-baseline gap-2">{{ $notaCount }} <span class="text-xs text-slate-400 font-body font-semibold">transaksi</span></h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5 font-semibold">{{ $labelBulan }}</p>
                 </div>
             </a>
 
@@ -292,8 +294,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div>
-                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Omset Kotor Hari Ini</p>
-                    <h3 class="font-headline text-2xl font-bold text-charcoal mt-1">Rp {{ number_format($omsetHariIni, 0, ',', '.') }}</h3>
+                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Omset Kotor Bulan Ini</p>
+                    <h3 class="font-headline text-2xl font-bold text-charcoal mt-1">Rp {{ number_format($omsetBulanIni, 0, ',', '.') }}</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5 font-semibold">{{ $labelBulan }}</p>
                 </div>
             </div>
 
@@ -304,8 +307,8 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                 </div>
                 <div>
-                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Selisih Retur Hari Ini</p>
-                    <h3 class="font-headline text-xl font-bold text-charcoal mt-1">Rp {{ number_format($returHariIni, 0, ',', '.') }}</h3>
+                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400">Selisih Retur Bulan Ini</p>
+                    <h3 class="font-headline text-xl font-bold text-charcoal mt-1">Rp {{ number_format($returBulanIni, 0, ',', '.') }}</h3>
                     <p class="text-[10px] text-slate-400 mt-0.5 font-semibold">(+) Pelanggan Nombok, (-) Toko Rugi</p>
                 </div>
             </div>
@@ -315,8 +318,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {{-- Chart --}}
-            <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100">
-                <h4 class="font-label text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Grafik Jumlah Transaksi (7 Hari Terakhir)</h4>
+            <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100" wire:ignore>
+                <h4 class="font-label text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Grafik Jumlah Transaksi — {{ $labelBulan }}</h4>
                 <div class="w-full h-56">
                     <canvas id="salesChart"></canvas>
                 </div>
@@ -421,42 +424,99 @@
     </div>
     @endif
 
-</div>
-
     {{-- ============================================== --}}
     {{-- MODALS                                         --}}
     {{-- ============================================== --}}
     @if($isMarketingModalOpen)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 overflow-hidden">
                 <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
-                    <h3 class="font-headline font-bold text-lg text-charcoal">Drill-down Marketing</h3>
+                    <div>
+                        <h3 class="font-headline font-bold text-lg text-charcoal">Riwayat Transaksi Marketing</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">{{ $selectedMarketingName }} — {{ $filterText }}</p>
+                    </div>
                     <button wire:click="closeMarketingModal" class="text-slate-400 hover:text-red-500 transition-colors">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
                 <div class="p-6">
-                    <p class="text-sm text-slate-500 mb-4">Pelanggan yang ditangani oleh <span class="font-bold text-charcoal">{{ $selectedMarketingName }}</span> ({{ $filterText }}):</p>
-                    <div class="max-h-64 overflow-y-auto pr-2 divide-y divide-slate-100">
-                        @forelse($marketingDrilldownData as $idx => $data)
-                            <div class="py-3 flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold">{{ $idx + 1 }}</div>
-                                    <p class="font-semibold text-charcoal text-sm">{{ $data->pelanggan->nama }}</p>
-                                </div>
-                                <div class="text-right">
+                    <div class="max-h-[420px] overflow-y-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="sticky top-0 bg-slate-50 z-10">
+                                <tr class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 border-b border-slate-200">
+                                    <th class="px-3 py-2.5">Tanggal</th>
+                                    <th class="px-3 py-2.5">Kode Nota</th>
+                                    <th class="px-3 py-2.5">Pelanggan</th>
                                     @if($isOwner)
-                                        <p class="text-sm font-bold text-emerald-600">Rp {{ number_format($data->total_revenue, 0, ',', '.') }}</p>
-                                        <p class="text-[10px] text-slate-400">{{ $data->total_nota }} Nota</p>
-                                    @else
-                                        <p class="text-sm font-bold text-emerald-600">{{ $data->total_nota }} Nota</p>
+                                        <th class="px-3 py-2.5 text-right">Total Harga</th>
                                     @endif
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-center text-sm text-slate-400 py-4">Tidak ada data pelanggan.</p>
-                        @endforelse
+                                    <th class="px-3 py-2.5 text-center w-20">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($marketingDrilldownData as $trx)
+                                    <tr class="hover:bg-slate-50/50 transition-colors {{ $expandedTransaksiId == $trx->id_transaksi_penjualan ? 'bg-blue-50/50' : '' }}">
+                                        <td class="px-3 py-2.5 font-semibold text-charcoal whitespace-nowrap">{{ $trx->tanggal_transaksi->translatedFormat('d M Y') }}</td>
+                                        <td class="px-3 py-2.5 font-mono text-xs text-slate-600 uppercase tracking-wider">{{ $trx->kode_nota }}</td>
+                                        <td class="px-3 py-2.5 text-slate-700">{{ $trx->pelanggan->nama ?? 'Walk-in' }}</td>
+                                        @if($isOwner)
+                                            <td class="px-3 py-2.5 text-right font-bold text-emerald-600">Rp {{ number_format($trx->total_harga, 0, ',', '.') }}</td>
+                                        @endif
+                                        <td class="px-3 py-2.5 text-center">
+                                            <button wire:click="toggleTransaksiDetail({{ $trx->id_transaksi_penjualan }})" 
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all
+                                                           {{ $expandedTransaksiId == $trx->id_transaksi_penjualan 
+                                                              ? 'bg-blue-pro text-white' 
+                                                              : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-pro' }}">
+                                                <span class="material-symbols-outlined text-[14px]">{{ $expandedTransaksiId == $trx->id_transaksi_penjualan ? 'expand_less' : 'expand_more' }}</span>
+                                                Detail
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {{-- Expanded Detail Row --}}
+                                    @if($expandedTransaksiId == $trx->id_transaksi_penjualan && count($expandedTransaksiDetail) > 0)
+                                        <tr>
+                                            <td colspan="{{ $isOwner ? 5 : 4 }}" class="p-0">
+                                                <div class="bg-slate-50 border-l-4 border-blue-pro px-5 py-3">
+                                                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 mb-2">Detail Barang pada Nota {{ $trx->kode_nota }}</p>
+                                                    <div class="space-y-1.5">
+                                                        @foreach($expandedTransaksiDetail as $detail)
+                                                            <div class="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2">
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-pro shrink-0"></span>
+                                                                    <span class="font-semibold text-charcoal">{{ $detail['produk']['nama_produk'] ?? '-' }}</span>
+                                                                </div>
+                                                                <div class="flex items-center gap-4 text-slate-500">
+                                                                    <span>{{ fmod((float)$detail['jumlah'], 1) == 0 ? (int)$detail['jumlah'] : $detail['jumlah'] }} {{ $detail['satuan_saat_jual'] }}</span>
+                                                                    <span class="text-slate-300">×</span>
+                                                                    <span>Rp {{ number_format($detail['harga_satuan'], 0, ',', '.') }}</span>
+                                                                    <span class="font-bold text-charcoal">= Rp {{ number_format($detail['subtotal'], 0, ',', '.') }}</span>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ $isOwner ? 5 : 4 }}" class="text-center text-sm text-slate-400 py-8 font-semibold">Tidak ada transaksi pada periode ini.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
+
+                    {{-- Footer Summary --}}
+                    @if(count($marketingDrilldownData) > 0)
+                        <div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center">
+                            <p class="text-xs text-slate-500 font-semibold">Total: <span class="text-charcoal font-bold">{{ count($marketingDrilldownData) }} Nota</span></p>
+                            @if($isOwner)
+                                <p class="text-sm font-headline font-bold text-emerald-600">Rp {{ number_format($marketingDrilldownData->sum('total_harga'), 0, ',', '.') }}</p>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -527,8 +587,8 @@
         const ctx = document.getElementById('salesChart');
         if(!ctx) return;
 
-        const labels = @json($chartLabels7Hari);
-        const dataPoint = @json($chartData7Hari);
+        const labels = @json($chartLabels);
+        const dataPoint = @json($chartData);
         const isOwner = {{ $isOwner ? 'true' : 'false' }};
 
         new Chart(ctx.getContext('2d'), {
@@ -540,13 +600,14 @@
                     data: dataPoint,
                     borderColor: isOwner ? '#1E3A8A' : '#84A59D',
                     backgroundColor: isOwner ? 'rgba(30, 58, 138, 0.08)' : 'rgba(132, 165, 157, 0.08)',
-                    borderWidth: 2.5,
+                    borderWidth: 2,
                     pointBackgroundColor: '#fff',
                     pointBorderColor: isOwner ? '#1E3A8A' : '#84A59D',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
+                    pointBorderWidth: 1.5,
+                    pointRadius: labels.length > 15 ? 2 : 4,
+                    pointHoverRadius: 5,
                     fill: true,
-                    tension: 0.4
+                    tension: 0.3
                 }]
             },
             options: {
@@ -555,7 +616,7 @@
                 plugins: { legend: { display: false } },
                 scales: {
                     y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } },
-                    x: { grid: { display: false } }
+                    x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } }
                 }
             }
         });
@@ -572,3 +633,5 @@
         }
     });
 </script>
+
+</div>

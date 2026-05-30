@@ -23,6 +23,8 @@ class Dashboard extends Component
 
     public $selectedMarketingName = '';
     public $marketingDrilldownData = [];
+    public $expandedTransaksiId = null;
+    public $expandedTransaksiDetail = [];
 
     public $selectedCustomerName = '';
     public $customerDrilldownMarketing = [];
@@ -53,20 +55,33 @@ class Dashboard extends Component
     public function openMarketingModal($marketingId, $marketingName)
     {
         $this->selectedMarketingName = $marketingName;
-        
-        $isOwner = Auth::user()->peran === 'OWNER';
+        $this->expandedTransaksiId = null;
+        $this->expandedTransaksiDetail = [];
 
         $this->marketingDrilldownData = TransaksiPenjualan::with('pelanggan')
             ->where('id_marketing', $marketingId)
             ->whereBetween('tanggal_transaksi', [Carbon::parse($this->startDate)->startOfDay(), Carbon::parse($this->endDate)->endOfDay()])
             ->where('status_penjualan', '!=', 'DIBATALKAN')
-            ->whereNotNull('id_pelanggan')
-            ->select('id_pelanggan', DB::raw('count(*) as total_nota'), DB::raw('sum(total_harga) as total_revenue'))
-            ->groupBy('id_pelanggan')
-            ->orderByDesc($isOwner ? 'total_revenue' : 'total_nota')
+            ->orderByDesc('tanggal_transaksi')
             ->get();
             
         $this->isMarketingModalOpen = true;
+    }
+
+    public function toggleTransaksiDetail($transaksiId)
+    {
+        $transaksiId = intval($transaksiId);
+
+        if ($this->expandedTransaksiId === $transaksiId) {
+            $this->expandedTransaksiId = null;
+            $this->expandedTransaksiDetail = [];
+        } else {
+            $this->expandedTransaksiId = $transaksiId;
+            $this->expandedTransaksiDetail = DetailPenjualan::with('produk')
+                ->where('id_transaksi_penjualan', $transaksiId)
+                ->get()
+                ->toArray();
+        }
     }
 
     public function closeMarketingModal()
@@ -111,28 +126,38 @@ class Dashboard extends Component
     }
     public function render()
     {
-        $hariIni = today();
         $isOwner = Auth::user()->peran === 'OWNER';
 
-        // 1. DATA KEUANGAN (Hanya untuk Owner)
-        $omsetHariIni = 0;
-        $returHariIni = 0;
+        // Range: Bulan ini (Tanggal 1 s/d Hari ini)
+        $awalBulan = Carbon::now('Asia/Jakarta')->startOfMonth()->startOfDay();
+        $hariIni = Carbon::now('Asia/Jakarta')->endOfDay();
+        $hariIniDate = Carbon::now('Asia/Jakarta');
+        $labelBulan = Carbon::now('Asia/Jakarta')->locale('id')->translatedFormat('F Y');
+
+        // 1. DATA KEUANGAN BULAN INI (Omset hanya untuk Owner)
+        $omsetBulanIni = 0;
+        $returBulanIni = 0;
         if ($isOwner) {
-            $omsetHariIni = TransaksiPenjualan::whereDate('tanggal_transaksi', $hariIni)
+            $omsetBulanIni = TransaksiPenjualan::whereBetween('tanggal_transaksi', [$awalBulan, $hariIni])
                 ->where('status_penjualan', '!=', 'DIBATALKAN')
                 ->sum('total_harga');
-            $returHariIni = TransaksiRetur::whereDate('tanggal_retur', $hariIni)->sum('total_biaya_retur');
+            $returBulanIni = TransaksiRetur::whereBetween('tanggal_retur', [$awalBulan, $hariIni])->sum('total_biaya_retur');
         }
 
-        $notaCount = TransaksiPenjualan::whereDate('tanggal_transaksi', $hariIni)->count();
+        $notaCount = TransaksiPenjualan::whereBetween('tanggal_transaksi', [$awalBulan, $hariIni])->count();
 
-        // 2. DATA CHART (7 Hari Terakhir & Bulan Ini)
-        $chartLabels7Hari = [];
-        $chartData7Hari = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $chartLabels7Hari[] = $date->format('d M');
-            $chartData7Hari[] = TransaksiPenjualan::whereDate('tanggal_transaksi', $date)->count();
+        // 2. DATA CHART (Bulan Ini — 1 batch query)
+        $dailyCounts = TransaksiPenjualan::whereBetween('tanggal_transaksi', [$awalBulan, $hariIni])
+            ->selectRaw('DATE(tanggal_transaksi) as tanggal, COUNT(*) as total')
+            ->groupBy('tanggal')
+            ->pluck('total', 'tanggal');
+
+        $chartLabels = [];
+        $chartData = [];
+        for ($date = $awalBulan->copy(); $date->lte($hariIniDate); $date->addDay()) {
+            $key = $date->format('Y-m-d');
+            $chartLabels[] = $date->format('d');
+            $chartData[] = $dailyCounts[$key] ?? 0;
         }
 
         $start = Carbon::parse($this->startDate)->startOfDay();
@@ -160,7 +185,7 @@ class Dashboard extends Component
 
         // 5. AUDIT LOG (Aktivitas User Hari Ini)
         $aktivitasHariIni = RiwayatStok::with(['user', 'produk', 'transaksiPenjualan'])
-            ->whereDate('created_at', $hariIni)
+            ->whereDate('created_at', today())
             ->orderBy('id_riwayat', 'desc')
             ->limit(8)
             ->get();
@@ -186,11 +211,12 @@ class Dashboard extends Component
 
         return view('livewire.dashboard', [
             'isOwner' => $isOwner,
-            'omsetHariIni' => $omsetHariIni,
-            'returHariIni' => $returHariIni,
+            'omsetBulanIni' => $omsetBulanIni,
+            'returBulanIni' => $returBulanIni,
             'notaCount' => $notaCount,
-            'chartLabels7Hari' => $chartLabels7Hari,
-            'chartData7Hari' => $chartData7Hari,
+            'labelBulan' => $labelBulan,
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
             'topMarketing' => $topMarketing,
             'topPelanggan' => $topPelanggan,
             'aktivitasHariIni' => $aktivitasHariIni,
