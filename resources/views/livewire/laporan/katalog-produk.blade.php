@@ -48,7 +48,7 @@
                     @foreach($produks as $prod)
                         <tr class="hover:bg-gray-50">
                             <td class="p-4 text-center font-bold text-gray-400">{{ $nomor++ }}.</td>
-                            <td class="p-4 font-mono font-bold text-gray-600">{{ $prod->kode_barang }}</td>
+                            <td class="p-4 font-mono font-bold text-gray-700 uppercase tracking-wider">{{ $prod->kode_barang }}</td>
                             <td class="p-4">
                                 <span class="font-bold text-gray-800">{{ $prod->nama_produk }}</span>
                                 @if($prod->metadata)

@@ -39,7 +39,7 @@ class KatalogProdukExport implements FromCollection, WithHeadings, WithStyles, W
 
                 $rows->push([
                     $nomor++,
-                    $prod->kode_barang,
+                    strtoupper($prod->kode_barang),
                     $prod->nama_produk,
                     $stok,
                     $prod->lokasi ?? '-',

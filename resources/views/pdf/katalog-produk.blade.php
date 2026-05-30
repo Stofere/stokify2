@@ -42,7 +42,7 @@
                 @foreach($produks as $prod)
                 <tr>
                     <td class="center">{{ $nomor++ }}.</td>
-                    <td style="font-family: monospace; font-size: 10px;">{{ $prod->kode_barang }}</td>
+                    <td style="font-family: monospace; font-size: 10px; text-transform: uppercase; font-weight: bold;">{{ strtoupper($prod->kode_barang) }}</td>
                     <td><strong>{{ $prod->nama_produk }}</strong></td>
                     <td class="center">
                         @if($prod->lacak_stok)

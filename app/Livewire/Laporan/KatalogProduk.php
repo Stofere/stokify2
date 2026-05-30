@@ -28,7 +28,10 @@ class KatalogProduk extends Component
         }
 
         // Mengambil data dan mengelompokkannya berdasarkan nama kategori
-        return $query->orderBy('id_kategori')->orderBy('nama_produk')->get()->groupBy('kategori.nama_kategori');
+        return $query->orderBy('id_kategori')
+                     ->orderBy('kode_barang', 'ASC')
+                     ->get()
+                     ->groupBy('kategori.nama_kategori');
     }
 
     public function cetakPdf()
