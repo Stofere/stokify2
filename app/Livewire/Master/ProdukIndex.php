@@ -93,6 +93,10 @@ class ProdukIndex extends Component
 
     public function simpan()
     {
+        if ($this->kode_barang) {
+            $this->kode_barang = strtoupper(trim($this->kode_barang));
+        }
+
         $this->validate([
             'id_kategori' => 'required',
             'kode_barang' => 'nullable|unique:produk,kode_barang,' . $this->edit_id . ',id_produk',
