@@ -429,8 +429,8 @@
     {{-- ============================================== --}}
     @if($isMarketingModalOpen)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 overflow-hidden">
-                <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0 rounded-t-2xl">
                     <div>
                         <h3 class="font-headline font-bold text-lg text-charcoal">Riwayat Transaksi Marketing</h3>
                         <p class="text-xs text-slate-500 mt-0.5">{{ $selectedMarketingName }} — {{ $filterText }}</p>
@@ -439,85 +439,83 @@
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
-                <div class="p-6">
-                    <div class="max-h-[420px] overflow-y-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="sticky top-0 bg-slate-50 z-10">
-                                <tr class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 border-b border-slate-200">
-                                    <th class="px-3 py-2.5">Tanggal</th>
-                                    <th class="px-3 py-2.5">Kode Nota</th>
-                                    <th class="px-3 py-2.5">Pelanggan</th>
+                <div class="flex-1 overflow-y-auto px-6 pt-4 pb-2">
+                    <table class="w-full text-left text-sm">
+                        <thead class="sticky top-0 bg-white z-10">
+                            <tr class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 border-b border-slate-200">
+                                <th class="px-3 py-2.5">Tanggal</th>
+                                <th class="px-3 py-2.5">Kode Nota</th>
+                                <th class="px-3 py-2.5">Pelanggan</th>
+                                @if($isOwner)
+                                    <th class="px-3 py-2.5 text-right">Total Harga</th>
+                                @endif
+                                <th class="px-3 py-2.5 text-center w-20">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($marketingDrilldownData as $trx)
+                                <tr class="hover:bg-slate-50/50 transition-colors {{ $expandedTransaksiId == $trx->id_transaksi_penjualan ? 'bg-blue-50/50' : '' }}">
+                                    <td class="px-3 py-2.5 font-semibold text-charcoal whitespace-nowrap">{{ $trx->tanggal_transaksi->translatedFormat('d M Y') }}</td>
+                                    <td class="px-3 py-2.5 font-mono text-xs text-slate-600 uppercase tracking-wider">{{ $trx->kode_nota }}</td>
+                                    <td class="px-3 py-2.5 text-slate-700">{{ $trx->pelanggan->nama ?? 'Walk-in' }}</td>
                                     @if($isOwner)
-                                        <th class="px-3 py-2.5 text-right">Total Harga</th>
+                                        <td class="px-3 py-2.5 text-right font-bold text-emerald-600">Rp {{ number_format($trx->total_harga, 0, ',', '.') }}</td>
                                     @endif
-                                    <th class="px-3 py-2.5 text-center w-20">Aksi</th>
+                                    <td class="px-3 py-2.5 text-center">
+                                        <button wire:click="toggleTransaksiDetail({{ $trx->id_transaksi_penjualan }})" 
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all
+                                                       {{ $expandedTransaksiId == $trx->id_transaksi_penjualan 
+                                                          ? 'bg-blue-pro text-white' 
+                                                          : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-pro' }}">
+                                            <span class="material-symbols-outlined text-[14px]">{{ $expandedTransaksiId == $trx->id_transaksi_penjualan ? 'expand_less' : 'expand_more' }}</span>
+                                            Detail
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @forelse($marketingDrilldownData as $trx)
-                                    <tr class="hover:bg-slate-50/50 transition-colors {{ $expandedTransaksiId == $trx->id_transaksi_penjualan ? 'bg-blue-50/50' : '' }}">
-                                        <td class="px-3 py-2.5 font-semibold text-charcoal whitespace-nowrap">{{ $trx->tanggal_transaksi->translatedFormat('d M Y') }}</td>
-                                        <td class="px-3 py-2.5 font-mono text-xs text-slate-600 uppercase tracking-wider">{{ $trx->kode_nota }}</td>
-                                        <td class="px-3 py-2.5 text-slate-700">{{ $trx->pelanggan->nama ?? 'Walk-in' }}</td>
-                                        @if($isOwner)
-                                            <td class="px-3 py-2.5 text-right font-bold text-emerald-600">Rp {{ number_format($trx->total_harga, 0, ',', '.') }}</td>
-                                        @endif
-                                        <td class="px-3 py-2.5 text-center">
-                                            <button wire:click="toggleTransaksiDetail({{ $trx->id_transaksi_penjualan }})" 
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all
-                                                           {{ $expandedTransaksiId == $trx->id_transaksi_penjualan 
-                                                              ? 'bg-blue-pro text-white' 
-                                                              : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-pro' }}">
-                                                <span class="material-symbols-outlined text-[14px]">{{ $expandedTransaksiId == $trx->id_transaksi_penjualan ? 'expand_less' : 'expand_more' }}</span>
-                                                Detail
-                                            </button>
+                                {{-- Expanded Detail Row --}}
+                                @if($expandedTransaksiId == $trx->id_transaksi_penjualan && count($expandedTransaksiDetail) > 0)
+                                    <tr>
+                                        <td colspan="{{ $isOwner ? 5 : 4 }}" class="p-0">
+                                            <div class="bg-slate-50 border-l-4 border-blue-pro px-5 py-3">
+                                                <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 mb-2">Detail Barang pada Nota {{ $trx->kode_nota }}</p>
+                                                <div class="space-y-1.5">
+                                                    @foreach($expandedTransaksiDetail as $detail)
+                                                        <div class="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-pro shrink-0"></span>
+                                                                <span class="font-semibold text-charcoal">{{ $detail['produk']['nama_produk'] ?? '-' }}</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-4 text-slate-500">
+                                                                <span>{{ fmod((float)$detail['jumlah'], 1) == 0 ? (int)$detail['jumlah'] : $detail['jumlah'] }} {{ $detail['satuan_saat_jual'] }}</span>
+                                                                <span class="text-slate-300">×</span>
+                                                                <span>Rp {{ number_format($detail['harga_satuan'], 0, ',', '.') }}</span>
+                                                                <span class="font-bold text-charcoal">= Rp {{ number_format($detail['subtotal'], 0, ',', '.') }}</span>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
-                                    {{-- Expanded Detail Row --}}
-                                    @if($expandedTransaksiId == $trx->id_transaksi_penjualan && count($expandedTransaksiDetail) > 0)
-                                        <tr>
-                                            <td colspan="{{ $isOwner ? 5 : 4 }}" class="p-0">
-                                                <div class="bg-slate-50 border-l-4 border-blue-pro px-5 py-3">
-                                                    <p class="text-[10px] font-label font-bold uppercase tracking-widest text-slate-400 mb-2">Detail Barang pada Nota {{ $trx->kode_nota }}</p>
-                                                    <div class="space-y-1.5">
-                                                        @foreach($expandedTransaksiDetail as $detail)
-                                                            <div class="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2">
-                                                                <div class="flex items-center gap-2">
-                                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-pro shrink-0"></span>
-                                                                    <span class="font-semibold text-charcoal">{{ $detail['produk']['nama_produk'] ?? '-' }}</span>
-                                                                </div>
-                                                                <div class="flex items-center gap-4 text-slate-500">
-                                                                    <span>{{ fmod((float)$detail['jumlah'], 1) == 0 ? (int)$detail['jumlah'] : $detail['jumlah'] }} {{ $detail['satuan_saat_jual'] }}</span>
-                                                                    <span class="text-slate-300">×</span>
-                                                                    <span>Rp {{ number_format($detail['harga_satuan'], 0, ',', '.') }}</span>
-                                                                    <span class="font-bold text-charcoal">= Rp {{ number_format($detail['subtotal'], 0, ',', '.') }}</span>
-                                                                </div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endif
-                                @empty
-                                    <tr>
-                                        <td colspan="{{ $isOwner ? 5 : 4 }}" class="text-center text-sm text-slate-400 py-8 font-semibold">Tidak ada transaksi pada periode ini.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {{-- Footer Summary --}}
-                    @if(count($marketingDrilldownData) > 0)
-                        <div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center">
-                            <p class="text-xs text-slate-500 font-semibold">Total: <span class="text-charcoal font-bold">{{ count($marketingDrilldownData) }} Nota</span></p>
-                            @if($isOwner)
-                                <p class="text-sm font-headline font-bold text-emerald-600">Rp {{ number_format($marketingDrilldownData->sum('total_harga'), 0, ',', '.') }}</p>
-                            @endif
-                        </div>
-                    @endif
+                                @endif
+                            @empty
+                                <tr>
+                                    <td colspan="{{ $isOwner ? 5 : 4 }}" class="text-center text-sm text-slate-400 py-8 font-semibold">Tidak ada transaksi pada periode ini.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
+
+                {{-- Footer Summary (pinned at bottom) --}}
+                @if(count($marketingDrilldownData) > 0)
+                    <div class="px-6 py-3 border-t border-slate-200 flex justify-between items-center shrink-0 bg-slate-50/50 rounded-b-2xl">
+                        <p class="text-xs text-slate-500 font-semibold">Total: <span class="text-charcoal font-bold">{{ count($marketingDrilldownData) }} Nota</span></p>
+                        @if($isOwner)
+                            <p class="text-sm font-headline font-bold text-emerald-600">Rp {{ number_format($marketingDrilldownData->sum('total_harga'), 0, ',', '.') }}</p>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     @endif
